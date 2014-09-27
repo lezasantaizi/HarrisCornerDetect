@@ -71,7 +71,8 @@ int main(int argc, char** argv)
 
 	Cim = (Ixx.mul(Ixx) + Iyy.mul(Iyy) )/(Ixx + Iyy + 1e-4);
 	
-	//int sze = 2*radius +1;
+	int radius = 1;
+	int sze = 2*radius +1;
 	//mx = 
 
 	//sze = 2*radius+1;                   % Size of mask.
