@@ -30,8 +30,8 @@ int maximumValue(Mat src , Rect rect)
 }
 int main(int argc, char** argv)
 {
-	const char* filename = argc >= 2 ? argv[1] : "car1.png";
-	Mat src = imread(filename,0);
+	const char* filename = argc >= 2 ? argv[1] : "hello1.jpg";
+	Mat src = imread(filename,1);
 	if(src.empty())
 	{
 		cout << "can not open " << filename << endl;
@@ -43,6 +43,7 @@ int main(int argc, char** argv)
 	int width = src.cols;
 	int height = src.rows;
 	src.copyTo(dst);
+	cvtColor(src,src,COLOR_BGR2GRAY);
 
 	//for (int row = 1; row < height - 1; row++)
 	//{
@@ -71,26 +72,26 @@ int main(int argc, char** argv)
 	//}
 
 	Mat Ix, Iy, Ixx, Iyy, Ixy, Cim,Mx;
-	Ix.create(Size(src.cols,src.rows),src.type());
-	Iy.create(Size(src.cols,src.rows),src.type());
-	Ixx.create(Size(src.cols,src.rows),src.type());
-	Iyy.create(Size(src.cols,src.rows),src.type());
-	Ixy.create(Size(src.cols,src.rows),src.type());
-	Cim.create(Size(src.cols,src.rows),src.type());
-	Mx.create(Size(src.cols,src.rows),src.type());
+	Ix.create(Size(src.cols,src.rows),CV_32FC1 );
+	Iy.create(Size(src.cols,src.rows),CV_32FC1);
+	Ixx.create(Size(src.cols,src.rows),CV_32FC1);
+	Iyy.create(Size(src.cols,src.rows),CV_32FC1);
+	Ixy.create(Size(src.cols,src.rows),CV_32FC1);
+	Cim.create(Size(src.cols,src.rows),CV_32FC1);
+	Mx.create(Size(src.cols,src.rows),CV_32FC1);
 	Sobel( src, Ix, src.depth(), 1, 0, 1 );
 	Sobel( src, Iy, src.depth(), 0, 1, 1 );
 	Ixx = Ix.mul(Ix);//矩阵点乘
 	Iyy = Iy.mul(Iy);
 	Ixy = Ix.mul(Iy);
 
-	GaussianBlur(Ixx,Ixx,Size(3,3),2);
-	GaussianBlur(Iyy,Iyy,Size(3,3),2);
-	GaussianBlur(Ixy,Ixy,Size(3,3),2);
+	GaussianBlur(Ixx,Ixx,Size(3,3),1);
+	GaussianBlur(Iyy,Iyy,Size(3,3),1);
+	GaussianBlur(Ixy,Ixy,Size(3,3),1);
 
 	Cim = (Ixx.mul(Ixx) + Iyy.mul(Iyy) )/(Ixx + Iyy + 1e-4);
 	
-	int radius = 2;
+	int radius = 4;
 	int thresh = 10;
 	int sze = 2*radius +1;
 
@@ -103,16 +104,42 @@ int main(int argc, char** argv)
 			rect.height = sze;
 			rect.x = i;
 			rect.y = j;
-			Mx.at<uchar>(i,j) = maximumValue(Cim,rect);
+			Mx.at<float>(i,j) = maximumValue(Cim,rect);
+			//printf("%d,%d ",Cim.at<uchar>(i,j),Mx.at<uchar>(i,j));
 		}
+		//printf("\n");
 	}
-	imshow("Mx",Mx);
+	//imshow("Mx",Mx - Cim);
 
 	//Mx - Cim 如果为0表示相等，不为0表示不相等
 	// Cim > thresh ,结果如果是255表示大于阈值，如果为0 表示小于阈值
 	//如果将 第一个结果 和 （第二个结果的取反） 进行 或 运算，结果表示，为0 的即是同时满足(cim==mx)&(cim>thresh)条件的，不为0的肯定不满足。
-	Mat temp = (Mx - Cim)|(~(Cim> thresh));
-	
+	//Mat temp = (Mx - Cim)|(~(Cim> thresh));
+	////imshow("temp",~temp);
+	//temp = ~temp;
+	//cout<<temp<<endl;
+	for (int i = 0 ;i< Cim.rows ;i++)
+	{
+		for (int j = 0; j< Cim.cols; j++)
+		{
+			//cout <<Mx<<endl;
+			
+			printf("%f \n",Cim.at<float>(i,j));
+			printf("%f \n",Mx.at<float>(i,j));
+			if (Cim.at<float>(i,j) == Mx.at<float>(i,j) && Cim.at<float>(i,j)> thresh)
+			{
+				circle(dst,Point(j,i),2,Scalar(0,0,255),1);
+			}
+			//if (Cim.at<float>(i,j) > 100)
+			//{
+			//	//cout <<(int)temp.at<uchar>(i,j) <<endl;
+			//	
+			//	//imshow("dst",dst);
+			//	//waitKey(0);
+			//}
+		}
+		cout <<endl;
+	}
 	//mx = 
 
 	//sze = 2*radius+1;                   % Size of mask.
@@ -121,7 +148,7 @@ int main(int argc, char** argv)
 
 	//	[r,c] = find(cim);                  % Find row,col coords.
 	//cout<<Mx<<endl;
-	imshow("dst",~temp);
+	imshow("dst",dst);
 	waitKey(0);
 	return 0;
 }
