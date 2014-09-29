@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 	Ixx.create(Size(src.cols,src.rows),CV_32FC1);
 	Iyy.create(Size(src.cols,src.rows),CV_32FC1);
 	Ixy.create(Size(src.cols,src.rows),CV_32FC1);
-	Cim.create(Size(src.cols,src.rows),CV_32FC1);
+	//Cim.create(Size(src.cols,src.rows),CV_32FC1);
 	Mx.create(Size(src.cols,src.rows),CV_32FC1);
 	Sobel( src, Ix, src.depth(), 1, 0, 1 );
 	Sobel( src, Iy, src.depth(), 0, 1, 1 );
@@ -88,9 +88,11 @@ int main(int argc, char** argv)
 	GaussianBlur(Ixx,Ixx,Size(3,3),1);
 	GaussianBlur(Iyy,Iyy,Size(3,3),1);
 	GaussianBlur(Ixy,Ixy,Size(3,3),1);
-
-	Cim = (Ixx.mul(Ixx) + Iyy.mul(Iyy) )/(Ixx + Iyy + 1e-4);
 	
+	divide(Ixx.mul(Ixx) + Iyy.mul(Iyy),Ixx + Iyy + 1e-4,Cim);
+	//Cim = (Ixx.mul(Ixx) + Iyy.mul(Iyy) )/(Ixx + Iyy + 1e-4);
+	printf("%d \n",Cim.at<float>(0,0));
+	cout<<Cim<<endl;
 	int radius = 4;
 	int thresh = 10;
 	int sze = 2*radius +1;
@@ -124,7 +126,7 @@ int main(int argc, char** argv)
 		{
 			//cout <<Mx<<endl;
 			
-			printf("%f \n",Cim.at<float>(i,j));
+			//printf("%f \n",Cim.at<float>(i,j));
 			printf("%f \n",Mx.at<float>(i,j));
 			if (Cim.at<float>(i,j) == Mx.at<float>(i,j) && Cim.at<float>(i,j)> thresh)
 			{
