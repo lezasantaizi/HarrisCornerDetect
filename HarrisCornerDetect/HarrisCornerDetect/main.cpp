@@ -11,22 +11,64 @@ using namespace cv;
 #pragma comment(lib, "opencv_imgproc249.lib")
 #pragma comment(lib, "opencv_core249.lib")
 
-int maximumValue(Mat src , Rect rect)
+void maximumValue(Mat src , int radius, Mat& dst)
 {
-	int maximum = 0;
-	int start1 = rect.x<(src.rows - rect.width )?rect.x:(src.rows - rect.width );
-	int end1 = (rect.x + rect.width)< src.rows?(rect.x + rect.width):src.rows;
-	int start2 = rect.y<(src.cols - rect.height )?rect.y:(src.cols - rect.height );
-	int end2 = (rect.y + rect.height)< src.cols?(rect.y + rect.height):src.cols;
-	for(int i = start1; i< end1; i++)
-		for (int j = start2; j< end2; j++)
+	for(int row = 0; row< src.rows; row++)
+	{
+		for (int col = 0; col< src.cols; col++)
 		{
-			if (maximum < src.at<uchar>(i,j))
+			float maximum = 0;
+			for (int win_x = -radius; win_x <= radius; win_x++)
 			{
-				maximum = src.at<uchar>(i,j);
+				int newRow = win_x + row;
+				if(newRow >= 0 && newRow < src.rows)
+				{
+					for (int win_y = -radius; win_y<= radius; win_y++)
+					{
+						int newCol = win_y + col;
+						if(newCol >=0 && newCol < src.cols)
+						{
+							//printf("%f ",src.at<float>(newRow,newCol));
+							if (maximum < src.at<float>(newRow,newCol))
+							{
+								maximum = src.at<float>(newRow,newCol);
+							}
+						}
+					}
+				}
+
 			}
+			dst.at<float>(row,col) = maximum;
 		}
-		return maximum;
+	}
+}
+
+void calculateKernel(Mat src,float** kernel,Mat dst)
+{
+	for (int row = 0; row < src.rows; row++)
+	{
+		for (int col = 0 ; col< src.cols; col++)
+		{
+			int sum = 0;
+			for (int win_x = -1; win_x<=1 ;win_x++)
+			{
+				int newRow = row+win_x;
+				if(newRow>=0 &&newRow<src.rows)
+				{
+					for (int win_y = -1; win_y<=1; win_y++)
+					{
+						int newCol = col+win_y;
+						if ( newCol >=0 && newCol<src.cols)
+						{
+							sum += src.at<uchar>(newRow,newCol)*kernel[win_x+1][win_y+1];
+						}
+					}
+				}
+
+			}
+			dst.at<float>(row,col) = sum;
+		}
+	}
 }
 int main(int argc, char** argv)
 {
@@ -45,110 +87,154 @@ int main(int argc, char** argv)
 	src.copyTo(dst);
 	cvtColor(src,src,COLOR_BGR2GRAY);
 
-	//for (int row = 1; row < height - 1; row++)
-	//{
-	//	for (int col = 1; col < width - 1; col++)
-	//	{
-	//		if (src.channels() == 1)
-	//		{
 
-	//			int center = src.at<uchar>(row,col);
-	//			int up = src.at<uchar>(row-1,col);
-	//			int down = src.at<uchar>(row+1,col);
-	//			int left = src.at<uchar>(row,col-1);
-	//			int right = src.at<uchar>(row,col+1);
-	//			int Ey = center - down;
-	//			int Ex = center - right;
-	//			int Exx = left + right - 2*center;
-	//			int Eyy = up + down - 2*center;
-	//		}
-	//		else
-	//		{
-	//			src.at<Vec3b>(row,col)[2];
-	//			src.at<Vec3b>(row,col)[1];
-	//			src.at<Vec3b>(row,col)[0];
-	//		}
-	//	}
-	//}
 
 	Mat Ix, Iy, Ixx, Iyy, Ixy, Cim,Mx;
+
+
 	Ix.create(Size(src.cols,src.rows),CV_32FC1 );
 	Iy.create(Size(src.cols,src.rows),CV_32FC1);
 	Ixx.create(Size(src.cols,src.rows),CV_32FC1);
 	Iyy.create(Size(src.cols,src.rows),CV_32FC1);
 	Ixy.create(Size(src.cols,src.rows),CV_32FC1);
-	//Cim.create(Size(src.cols,src.rows),CV_32FC1);
+	Cim.create(Size(src.cols,src.rows),CV_32FC1);
 	Mx.create(Size(src.cols,src.rows),CV_32FC1);
-	Sobel( src, Ix, src.depth(), 1, 0, 1 );
-	Sobel( src, Iy, src.depth(), 0, 1, 1 );
-	Ixx = Ix.mul(Ix);//矩阵点乘
-	Iyy = Iy.mul(Iy);
-	Ixy = Ix.mul(Iy);
 
-	GaussianBlur(Ixx,Ixx,Size(3,3),1);
-	GaussianBlur(Iyy,Iyy,Size(3,3),1);
-	GaussianBlur(Ixy,Ixy,Size(3,3),1);
-	
-	divide(Ixx.mul(Ixx) + Iyy.mul(Iyy),Ixx + Iyy + 1e-4,Cim);
-	//Cim = (Ixx.mul(Ixx) + Iyy.mul(Iyy) )/(Ixx + Iyy + 1e-4);
-	printf("%d \n",Cim.at<float>(0,0));
-	cout<<Cim<<endl;
-	int radius = 4;
-	int thresh = 10;
-	int sze = 2*radius +1;
-
-	for (int i = 0; i< Cim.rows ; i++)
+	//float kernelX[3][3] = {{1,0,-1},{1,0,-1},{1,0,-1}};
+	//float kernelY[3][3] = {{1,1,1},{0,0,0},{-1,-1,-1}};
+	float **kernelX,**kernelY;
+	kernelX = new float*[3];
+	kernelY = new float*[3];
+	for (int i = 0;i< 3;i++)
 	{
-		for (int j = 0 ; j < Cim.cols ; j++)
+		kernelX[i] = new float[3];
+		kernelY[i] = new float[3];
+		for (int j = 0 ;j< 3;j++)
 		{
-			Rect rect ;
-			rect.width = sze;
-			rect.height = sze;
-			rect.x = i;
-			rect.y = j;
-			Mx.at<float>(i,j) = maximumValue(Cim,rect);
-			//printf("%d,%d ",Cim.at<uchar>(i,j),Mx.at<uchar>(i,j));
+			kernelX[i][j] = 1-j;
+			kernelY[i][j] = 1-i;
+
+		}
+	}
+
+	calculateKernel(src,kernelX,Ix);
+	calculateKernel(src,kernelY,Iy);
+
+
+	float gaussianKernel[][6] = {{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{ 0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003}};
+	for (int row = 0; row < src.rows; row++)
+	{
+		for (int col = 0 ; col< src.cols; col++)
+		{
+			float sum = 0;
+			for (int win_x = -2; win_x<=3 ;win_x++)
+			{
+				int newRow = row+win_x;
+				if(newRow>=0 &&newRow<src.rows)
+				{
+					for (int win_y = -2; win_y<=3; win_y++)
+					{
+						int newCol = col+win_y;
+						if ( newCol >=0 && newCol<src.cols)
+						{
+							sum += Ix.at<float>(newRow,newCol)*Ix.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
+						}
+					}
+				}
+
+			}
+			Ixx.at<float>(row,col) = sum;
+		}
+	}
+
+	for (int row = 0; row < src.rows; row++)
+	{
+		for (int col = 0 ; col< src.cols; col++)
+		{
+			float sum = 0;
+			for (int win_x = -2; win_x<=3 ;win_x++)
+			{
+				int newRow = row+win_x;
+				if(newRow>=0 &&newRow<src.rows)
+				{
+					for (int win_y = -2; win_y<=3; win_y++)
+					{
+						int newCol = col+win_y;
+						if ( newCol >=0 && newCol<src.cols)
+						{
+							sum += Iy.at<float>(newRow,newCol)*Iy.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
+						}
+					}
+				}
+
+			}
+			Iyy.at<float>(row,col) = sum;
+		}
+	}
+
+	for (int row = 0; row < src.rows; row++)
+	{
+		for (int col = 0 ; col< src.cols; col++)
+		{
+			float sum = 0;
+			for (int win_x = -2; win_x<=3 ;win_x++)
+			{
+				int newRow = row+win_x;
+				if(newRow>=0 &&newRow<src.rows)
+				{
+					for (int win_y = -2; win_y<=3; win_y++)
+					{
+						int newCol = col+win_y;
+						if ( newCol >=0 && newCol<src.cols)
+						{
+							sum += Ix.at<float>(newRow,newCol)*Iy.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
+						}
+					}
+				}
+
+			}
+			Ixy.at<float>(row,col) = sum;
+		}
+	}
+
+
+	for (int row = 0; row < src.rows; row++)
+	{
+		for (int col = 0 ; col< src.cols; col++)
+		{
+			Cim.at<float>(row,col) = ( Ixx.at<float>(row,col)*
+			Iyy.at<float>(row,col) - Ixy.at<float>(row,col)*
+			Ixy.at<float>(row,col) ) / ( Ixx.at<float>(row,col) 
+			+ Iyy.at<float>(row,col) + 1e-4 );
+			//printf("%6.2f  ",Cim.at<float>(row,col));
 		}
 		//printf("\n");
 	}
-	//imshow("Mx",Mx - Cim);
 
-	//Mx - Cim 如果为0表示相等，不为0表示不相等
-	// Cim > thresh ,结果如果是255表示大于阈值，如果为0 表示小于阈值
-	//如果将 第一个结果 和 （第二个结果的取反） 进行 或 运算，结果表示，为0 的即是同时满足(cim==mx)&(cim>thresh)条件的，不为0的肯定不满足。
-	//Mat temp = (Mx - Cim)|(~(Cim> thresh));
-	////imshow("temp",~temp);
-	//temp = ~temp;
-	//cout<<temp<<endl;
+	int radius = 2;
+	int thresh = 100;
+	int sze = 2*radius +1;
+
+
+	maximumValue(Cim, radius, Mx);
+
 	for (int i = 0 ;i< Cim.rows ;i++)
 	{
 		for (int j = 0; j< Cim.cols; j++)
 		{
-			//cout <<Mx<<endl;
-			
-			//printf("%f \n",Cim.at<float>(i,j));
-			printf("%f \n",Mx.at<float>(i,j));
 			if (Cim.at<float>(i,j) == Mx.at<float>(i,j) && Cim.at<float>(i,j)> thresh)
 			{
-				circle(dst,Point(j,i),2,Scalar(0,0,255),1);
+				circle(dst,Point(j,i),2,Scalar(0,0,255),3);
 			}
-			//if (Cim.at<float>(i,j) > 100)
-			//{
-			//	//cout <<(int)temp.at<uchar>(i,j) <<endl;
-			//	
-			//	//imshow("dst",dst);
-			//	//waitKey(0);
-			//}
+
 		}
 		cout <<endl;
 	}
-	//mx = 
-
-	//sze = 2*radius+1;                   % Size of mask.
+	//sze = 2*radius+1;,,,,   % Size of mask.
 	//	mx = ordfilt2(cim,sze^2,ones(sze)); % Grey-scale dilate. maximum filter
-	//	cim = (cim==mx)&(cim>thresh);       % Find maxima.
+	//	cim = (cim==mx)&(cim>thresh);,   % Find maxima.
 
-	//	[r,c] = find(cim);                  % Find row,col coords.
+	//	[r,c] = find(cim);,,,,  % Find row,col coords.
 	//cout<<Mx<<endl;
 	imshow("dst",dst);
 	waitKey(0);
