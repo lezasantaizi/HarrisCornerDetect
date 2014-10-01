@@ -70,6 +70,34 @@ void calculateKernel(Mat src,float** kernel,Mat dst)
 		}
 	}
 }
+
+void cons(Mat src1, Mat src2, Mat& dst, float** gaussianKernel)
+{
+	for (int row = 0; row < src1.rows; row++)
+	{
+		for (int col = 0 ; col< src1.cols; col++)
+		{
+			float sum = 0;
+			for (int win_x = -2; win_x<=3 ;win_x++)
+			{
+				int newRow = row+win_x;
+				if(newRow>=0 &&newRow<src1.rows)
+				{
+					for (int win_y = -2; win_y<=3; win_y++)
+					{
+						int newCol = col+win_y;
+						if ( newCol >=0 && newCol<src1.cols)
+						{
+							sum += src1.at<float>(newRow,newCol)*src2.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
+						}
+					}
+				}
+
+			}
+			dst.at<float>(row,col) = sum;
+		}
+	}
+}
 int main(int argc, char** argv)
 {
 	const char* filename = argc >= 2 ? argv[1] : "hello1.jpg";
@@ -122,81 +150,36 @@ int main(int argc, char** argv)
 
 
 	float gaussianKernel[][6] = {{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{ 0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003}};
-	for (int row = 0; row < src.rows; row++)
-	{
-		for (int col = 0 ; col< src.cols; col++)
+
+
+		float arrSum = 0;
+		sigma = sigmaValue;
+		for (int i = -win_size ; i <= win_size; i++)
 		{
-			float sum = 0;
-			for (int win_x = -2; win_x<=3 ;win_x++)
+			for (int j = -win_size ; j<= win_size; j++)
 			{
-				int newRow = row+win_x;
-				if(newRow>=0 &&newRow<src.rows)
-				{
-					for (int win_y = -2; win_y<=3; win_y++)
-					{
-						int newCol = col+win_y;
-						if ( newCol >=0 && newCol<src.cols)
-						{
-							sum += Ix.at<float>(newRow,newCol)*Ix.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
-						}
-					}
-				}
+				int r = i*i + j*j;
+				float k = -r/(2*sigma*sigma);
+				arr[i+win_size][j+win_size] = exp(k)/sqrt(2*3.1415926*sigma*sigma);
 
+				arrSum += arr[i+win_size][j+win_size];
 			}
-			Ixx.at<float>(row,col) = sum;
 		}
-	}
 
-	for (int row = 0; row < src.rows; row++)
-	{
-		for (int col = 0 ; col< src.cols; col++)
+		for (int i = -win_size ; i <= win_size; i++)
 		{
-			float sum = 0;
-			for (int win_x = -2; win_x<=3 ;win_x++)
+			for (int j = -win_size ; j<= win_size; j++)
 			{
-				int newRow = row+win_x;
-				if(newRow>=0 &&newRow<src.rows)
-				{
-					for (int win_y = -2; win_y<=3; win_y++)
-					{
-						int newCol = col+win_y;
-						if ( newCol >=0 && newCol<src.cols)
-						{
-							sum += Iy.at<float>(newRow,newCol)*Iy.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
-						}
-					}
-				}
-
+				arr[i+win_size][j+win_size] /= arrSum;
+				//printf("%f ",arr[i+win_size][j+win_size]);
 			}
-			Iyy.at<float>(row,col) = sum;
+			//printf("\n");
 		}
-	}
 
-	for (int row = 0; row < src.rows; row++)
-	{
-		for (int col = 0 ; col< src.cols; col++)
-		{
-			float sum = 0;
-			for (int win_x = -2; win_x<=3 ;win_x++)
-			{
-				int newRow = row+win_x;
-				if(newRow>=0 &&newRow<src.rows)
-				{
-					for (int win_y = -2; win_y<=3; win_y++)
-					{
-						int newCol = col+win_y;
-						if ( newCol >=0 && newCol<src.cols)
-						{
-							sum += Ix.at<float>(newRow,newCol)*Iy.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
-						}
-					}
-				}
 
-			}
-			Ixy.at<float>(row,col) = sum;
-		}
-	}
-
+	cons(Ix, Ix, Ixx, gaussianKernel);
+	cons(Iy, Iy, Iyy, gaussianKernel);
+	cons(Ix, Iy, Ixy, gaussianKernel);
 
 	for (int row = 0; row < src.rows; row++)
 	{
