@@ -149,32 +149,70 @@ int main(int argc, char** argv)
 	calculateKernel(src,kernelY,Iy);
 
 
-	float gaussianKernel[][6] = {{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{ 0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003}};
+	//float gaussianKernel[][6] = {{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{ 0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003}};
+	float ** gaussianKernel;
+	gaussianKernel = new float *[6];
+	for (int i = 0 ;i<6 ;i++)
+	{
+		gaussianKernel[i] = new float[6];
+	}
+
+	int i =0,j=0;
+	gaussianKernel[i][j] = 0.0003;
+	gaussianKernel[i][j+1] = gaussianKernel[i+1][j] = 0.0023;
+	gaussianKernel[i][j+2] = gaussianKernel[i+2][j] =0.0062;
+	gaussianKernel[i+1][j+1] = 0.0168;
+	gaussianKernel[i+2][j+2] = 0.1244;
+	gaussianKernel[i+2][j+1] = gaussianKernel[i+1][j+2] = 0.0458;
+
+	gaussianKernel[i][5-j] = 0.0003;
+	gaussianKernel[i][5 - (j+1)] = gaussianKernel[i+1][j] = 0.0023;
+	gaussianKernel[i][j+2] = gaussianKernel[i+2][j] =0.0062;
+	gaussianKernel[i+1][j+1] = 0.0168;
+	gaussianKernel[i+2][j+2] = 0.1244;
+	gaussianKernel[i+2][j+1] = gaussianKernel[i+1][j+2] = 0.0458;
+
+	gaussianKernel[i][j] = 0.0003;
+	gaussianKernel[i][j+1] = gaussianKernel[i+1][j] = 0.0023;
+	gaussianKernel[i][j+2] = gaussianKernel[i+2][j] =0.0062;
+	gaussianKernel[i+1][j+1] = 0.0168;
+	gaussianKernel[i+2][j+2] = 0.1244;
+	gaussianKernel[i+2][j+1] = gaussianKernel[i+1][j+2] = 0.0458;
+
+	gaussianKernel[i][j] = 0.0003;
+	gaussianKernel[i][j+1] = gaussianKernel[i+1][j] = 0.0023;
+	gaussianKernel[i][j+2] = gaussianKernel[i+2][j] =0.0062;
+	gaussianKernel[i+1][j+1] = 0.0168;
+	gaussianKernel[i+2][j+2] = 0.1244;
+	gaussianKernel[i+2][j+1] = gaussianKernel[i+1][j+2] = 0.0458;
+
+	
 
 
-		float arrSum = 0;
-		sigma = sigmaValue;
-		for (int i = -win_size ; i <= win_size; i++)
-		{
-			for (int j = -win_size ; j<= win_size; j++)
-			{
-				int r = i*i + j*j;
-				float k = -r/(2*sigma*sigma);
-				arr[i+win_size][j+win_size] = exp(k)/sqrt(2*3.1415926*sigma*sigma);
+		//int win_size = 3;
+		//float arrSum = 0;
+		//sigma = sigmaValue;
+		//for (int i = -win_size ; i <= win_size; i++)
+		//{
+		//	for (int j = -win_size ; j<= win_size; j++)
+		//	{
+		//		int r = i*i + j*j;
+		//		float k = -r/(2*sigma*sigma);
+		//		arr[i+win_size][j+win_size] = exp(k)/sqrt(2*3.1415926*sigma*sigma);
 
-				arrSum += arr[i+win_size][j+win_size];
-			}
-		}
+		//		arrSum += arr[i+win_size][j+win_size];
+		//	}
+		//}
 
-		for (int i = -win_size ; i <= win_size; i++)
-		{
-			for (int j = -win_size ; j<= win_size; j++)
-			{
-				arr[i+win_size][j+win_size] /= arrSum;
-				//printf("%f ",arr[i+win_size][j+win_size]);
-			}
-			//printf("\n");
-		}
+		//for (int i = -win_size ; i <= win_size; i++)
+		//{
+		//	for (int j = -win_size ; j<= win_size; j++)
+		//	{
+		//		arr[i+win_size][j+win_size] /= arrSum;
+		//		//printf("%f ",arr[i+win_size][j+win_size]);
+		//	}
+		//	//printf("\n");
+		//}
 
 
 	cons(Ix, Ix, Ixx, gaussianKernel);
