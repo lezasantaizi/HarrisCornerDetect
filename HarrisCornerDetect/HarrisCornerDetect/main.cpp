@@ -70,6 +70,34 @@ void calculateKernel(Mat src,float** kernel,Mat dst)
 		}
 	}
 }
+
+void cons(Mat src1, Mat src2, Mat& dst, float** gaussianKernel)
+{
+	for (int row = 0; row < src1.rows; row++)
+	{
+		for (int col = 0 ; col< src1.cols; col++)
+		{
+			float sum = 0;
+			for (int win_x = -2; win_x<=3 ;win_x++)
+			{
+				int newRow = row+win_x;
+				if(newRow>=0 &&newRow<src1.rows)
+				{
+					for (int win_y = -2; win_y<=3; win_y++)
+					{
+						int newCol = col+win_y;
+						if ( newCol >=0 && newCol<src1.cols)
+						{
+							sum += src1.at<float>(newRow,newCol)*src2.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
+						}
+					}
+				}
+
+			}
+			dst.at<float>(row,col) = sum;
+		}
+	}
+}
 int main(int argc, char** argv)
 {
 	const char* filename = argc >= 2 ? argv[1] : "hello1.jpg";
@@ -121,82 +149,103 @@ int main(int argc, char** argv)
 	calculateKernel(src,kernelY,Iy);
 
 
-	float gaussianKernel[][6] = {{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{ 0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003}};
-	for (int row = 0; row < src.rows; row++)
+	//float gaussianKernel[][6] = {{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{ 0.0062,0.0458,0.1244,0.1244,0.0458,0.0062},{0.0023,0.0168,0.0458,0.0458,0.0168,0.0023},{0.0003,0.0023,0.0062,0.0062,0.0023,0.0003}};
+	float ** gaussianKernel;
+	gaussianKernel = new float *[7];
+	for (int i = 0 ;i<7 ;i++)
 	{
-		for (int col = 0 ; col< src.cols; col++)
-		{
-			float sum = 0;
-			for (int win_x = -2; win_x<=3 ;win_x++)
-			{
-				int newRow = row+win_x;
-				if(newRow>=0 &&newRow<src.rows)
-				{
-					for (int win_y = -2; win_y<=3; win_y++)
-					{
-						int newCol = col+win_y;
-						if ( newCol >=0 && newCol<src.cols)
-						{
-							sum += Ix.at<float>(newRow,newCol)*Ix.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
-						}
-					}
-				}
-
-			}
-			Ixx.at<float>(row,col) = sum;
-		}
+		gaussianKernel[i] = new float[7];
 	}
 
-	for (int row = 0; row < src.rows; row++)
-	{
-		for (int col = 0 ; col< src.cols; col++)
-		{
-			float sum = 0;
-			for (int win_x = -2; win_x<=3 ;win_x++)
-			{
-				int newRow = row+win_x;
-				if(newRow>=0 &&newRow<src.rows)
-				{
-					for (int win_y = -2; win_y<=3; win_y++)
-					{
-						int newCol = col+win_y;
-						if ( newCol >=0 && newCol<src.cols)
-						{
-							sum += Iy.at<float>(newRow,newCol)*Iy.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
-						}
-					}
-				}
 
-			}
-			Iyy.at<float>(row,col) = sum;
+	float arrSum = 0;
+	float sigma = 1;
+	int win_size = 3;
+	for (int i = -win_size ; i <= win_size; i++)
+	{
+		for (int j = -win_size ; j<= win_size; j++)
+		{
+			int r = i*i + j*j;
+			float k = -r/(2*sigma*sigma);
+			gaussianKernel[i+win_size][j+win_size] = exp(k)/sqrt(2*3.1415926*sigma*sigma);
+
+			arrSum += gaussianKernel[i+win_size][j+win_size];
+			printf("%f ",gaussianKernel[i+win_size][j+win_size]);
 		}
+		printf("\n");
 	}
 
-	for (int row = 0; row < src.rows; row++)
+	for (int i = -win_size ; i <= win_size; i++)
 	{
-		for (int col = 0 ; col< src.cols; col++)
+		for (int j = -win_size ; j<= win_size; j++)
 		{
-			float sum = 0;
-			for (int win_x = -2; win_x<=3 ;win_x++)
-			{
-				int newRow = row+win_x;
-				if(newRow>=0 &&newRow<src.rows)
-				{
-					for (int win_y = -2; win_y<=3; win_y++)
-					{
-						int newCol = col+win_y;
-						if ( newCol >=0 && newCol<src.cols)
-						{
-							sum += Ix.at<float>(newRow,newCol)*Iy.at<float>(newRow,newCol)*gaussianKernel[win_x+2][win_y+2];
-						}
-					}
-				}
-
-			}
-			Ixy.at<float>(row,col) = sum;
+			gaussianKernel[i+win_size][j+win_size] /= arrSum;
+			printf("%f ",gaussianKernel[i+win_size][j+win_size]);
 		}
+		printf("\n");
 	}
 
+	//int i =0,j=0;
+	//gaussianKernel[i][j] = 0.0003;
+	//gaussianKernel[i][j+1] = gaussianKernel[i+1][j] = 0.0023;
+	//gaussianKernel[i][j+2] = gaussianKernel[i+2][j] =0.0062;
+	//gaussianKernel[i+1][j+1] = 0.0168;
+	//gaussianKernel[i+2][j+2] = 0.1244;
+	//gaussianKernel[i+2][j+1] = gaussianKernel[i+1][j+2] = 0.0458;
+
+	//gaussianKernel[i][5-j] = 0.0003;
+	//gaussianKernel[i][5 - (j+1)] = gaussianKernel[i+1][5-j] = 0.0023;
+	//gaussianKernel[i][5 - (j+2)] = gaussianKernel[i+2][5-j] =0.0062;
+	//gaussianKernel[i+1][5 - (j+1)] = 0.0168;
+	//gaussianKernel[i+2][5 - (j+2)] = 0.1244;
+	//gaussianKernel[i+2][5 - (j+1)] = gaussianKernel[i+1][5 - (j+2)] = 0.0458;
+
+	//gaussianKernel[5 - i][j] = 0.0003;
+	//gaussianKernel[5 - i][j+1] = gaussianKernel[5-(i+1)][j] = 0.0023;
+	//gaussianKernel[5 - i][j+2] = gaussianKernel[5 - (i+2)][j] =0.0062;
+	//gaussianKernel[5-(i+1)][j+1] = 0.0168;
+	//gaussianKernel[5 - (i+2)][j+2] = 0.1244;
+	//gaussianKernel[5 - (i+2)][j+1] = gaussianKernel[5 - (i+1)][j+2] = 0.0458;
+
+	//gaussianKernel[5 - i][5-j] = 0.0003;
+	//gaussianKernel[5 - i][5 - (j+1)] = gaussianKernel[5-(i+1)][j] = 0.0023;
+	//gaussianKernel[5 - i][5 - (j+2)] = gaussianKernel[5 - (i+2)][j] =0.0062;
+	//gaussianKernel[5-(i+1)][5 - (j+1)] = 0.0168;
+	//gaussianKernel[5 - (i+2)][5 - (j+2)] = 0.1244;
+	//gaussianKernel[5 - (i+2)][j+1] = gaussianKernel[5 - (i+1)][5 - (j+2)] = 0.0458;
+
+	
+
+
+		//int win_size = 3;
+		//float arrSum = 0;
+		//sigma = sigmaValue;
+		//for (int i = -win_size ; i <= win_size; i++)
+		//{
+		//	for (int j = -win_size ; j<= win_size; j++)
+		//	{
+		//		int r = i*i + j*j;
+		//		float k = -r/(2*sigma*sigma);
+		//		arr[i+win_size][j+win_size] = exp(k)/sqrt(2*3.1415926*sigma*sigma);
+
+		//		arrSum += arr[i+win_size][j+win_size];
+		//	}
+		//}
+
+		//for (int i = -win_size ; i <= win_size; i++)
+		//{
+		//	for (int j = -win_size ; j<= win_size; j++)
+		//	{
+		//		arr[i+win_size][j+win_size] /= arrSum;
+		//		//printf("%f ",arr[i+win_size][j+win_size]);
+		//	}
+		//	//printf("\n");
+		//}
+
+
+	cons(Ix, Ix, Ixx, gaussianKernel);
+	cons(Iy, Iy, Iyy, gaussianKernel);
+	cons(Ix, Iy, Ixy, gaussianKernel);
 
 	for (int row = 0; row < src.rows; row++)
 	{
